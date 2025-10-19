@@ -76,8 +76,6 @@ The project will consist of two sprints, i.e. increments of work, each of which 
 
 A link to the Projects page should be included in the `README.md` file.
 
-![simple task board](images/github-user-story-status-board.png)
-
 ### Daily standups
 
 Teams must hold 3 or more "daily" standup meetings per week.

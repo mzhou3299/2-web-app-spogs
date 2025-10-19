@@ -1,0 +1,29 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+blinker = "*"
+click = "*"
+flask = "*"
+flask-debugtoolbar = "*"
+flask-pymongo = "*"
+flask-login = "*"
+itsdangerous = "*"
+jinja2 = "*"
+markupsafe = "*"
+python-dotenv = "*"
+werkzeug = "*"
+pytest = "*"
+pytest-flask = "*"
+coverage = "*"
+dnspython = "*"
+pydantic = "*"
+pymongo = {extras = ["tls", "srv"], version = "*"}
+gunicorn = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.9"

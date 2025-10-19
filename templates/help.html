@@ -1,26 +1,23 @@
 {% extends "base.html" %}
 {% block content %}
 <header class="topbar">
-  <h1>Help & Info</h1>
-  <button class="btn-primary" onclick="window.location.href='/'">Back</button>
+  <h1>Help & Instructions</h1>
+  <a href="{{ url_for('index') }}" class="btn-secondary">← Back</a>
 </header>
 
-<section class="card" style="margin-top: 16px;">
-  <h2 style="margin-top: 0;">Using This App</h2>
-  <p>
-    This homework tracker helps you manage assignments across your courses.  
-    You can add, edit, mark complete, or delete assignments. All changes are automatically saved.
-  </p>
+<section class="form-container">
+  <h2>How to Use This App</h2>
+  <p>Welcome to your Homework Manager! Here’s how everything works:</p>
 
-  <ul style="line-height: 1.6;">
-    <li><b>Add:</b> Click “Add” to create a new assignment.</li>
-    <li><b>Edit:</b> Click “Edit” to modify details.</li>
-    <li><b>Complete:</b> Check the box to mark an item done.</li>
-    <li><b>Delete:</b> Click the trash icon to remove an assignment.</li>
+  <ul style="line-height: 1.6; color: var(--muted);">
+    <li><strong>Add Assignments:</strong> Click <span style="color: var(--accent);">Add</span> to create a new homework entry with title, course, due date, and notes.</li>
+    <li><strong>Edit Assignments:</strong> Select <span style="color: var(--accent);">Edit</span> on any card to update its details.</li>
+    <li><strong>Mark as Done:</strong> Check the box next to an assignment title to mark it complete.</li>
+    <li><strong>Delete:</strong> Click 🗑️ on a card to open a confirmation popup — then confirm deletion.</li>
+    <li><strong>Search:</strong> Use the 🔍 icon to filter and find assignments by keywords or course.</li>
+    <li><strong>Logout:</strong> Ends your session securely.</li>
   </ul>
 
-  <p style="opacity: 0.8;">
-    If you encounter any issues, refer back to the README.md file
-  </p>
+  <a href="{{ url_for('index') }}" class="btn-secondary" style="margin-top: 20px; text-align: center;">Back to Home</a>
 </section>
 {% endblock %}

@@ -3,16 +3,82 @@
 <header class="topbar">
   <h1>Homework</h1>
   <div class="row">
-    <button id="addBtn" class="btn-primary">Add</button>
-    <button id="helpBtn" class="btn-icon" title="Help">?</button>
+    <a href="{{ url_for('help_page') }}" class="btn-secondary" style="margin-left: 4px;">Help</a>
     <!-- placeholder; appears only after Add is clicked -->
     <button id="newAssignmentBtn" class="btn-secondary hidden" aria-hidden="true">New Assignment</button>
+    <a href="{{ url_for('search') }}" class="btn-icon-search" title="Search">🔍</a>
+    <a href="{{ url_for('add_assignment') }}" class="btn-primary">Add</a>
+    <a href="{{ url_for('logout') }}" class="btn-secondary">Logout</a>
   </div>
 </header>
 
-<!-- Full-height empty state under the header -->
-<section id="emptyState" class="empty empty-full hidden">No Current Assignments</section>
+{% if not has_assignments %}
+  <!-- Full-height empty state under the header -->
+  <section class="empty empty-full">No Current Assignments</section>
+{% else %}
+  <!-- Populated when there are assignments -->
+  <section class="list">
+    {% for date_label, assignments in grouped_assignments.items() %}
+      <div class="meta">{{ date_label }}</div>
+      {% for assignment in assignments %}
+        <div class="card {% if assignment.is_overdue %}assignment-overdue{% elif assignment.is_due_soon %}assignment-due-soon{% endif %}">
+          <div class="card-head">
+            <div class="row">
+              <form method="POST" action="{{ url_for('toggle_assignment', assignment_id=assignment.id) }}" style="margin: 0;">
+                <input type="checkbox" {% if assignment.completed %}checked{% endif %} onchange="this.form.submit()">
+              </form>
+              <div class="title {% if assignment.completed %}completed{% endif %}">{{ assignment.title }}</div>
+            </div>
+            <div class="actions">
+              <a href="{{ url_for('edit_assignment', assignment_id=assignment.id) }}" class="btn-icon">Edit</a>
+              <button class="btn-icon" title="Delete" onclick="openDeletePopup('{{ assignment.id }}', '{{ assignment.title|escape }}')">🗑️</button>
+            </div>
+          </div>
+          <div class="meta">
+            {% if assignment.course %}
+              <span class="badge">{{ assignment.course }}</span>
+            {% endif %}
+            <span>{{ assignment.due_date }}</span>
+            <span class="badge">P{{ assignment.priority }}</span>
+            {% if assignment.estimated_time %}
+              <span class="badge">{{ assignment.estimated_time }}m</span>
+            {% endif %}
+          </div>
+          {% if assignment.notes %}
+            <div style="font-size: 13px; opacity: 0.9;">{{ assignment.notes }}</div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    {% endfor %}
+  </section>
+{% endif %}
+<!-- Delete confirmation popup -->
+<div id="deletePopup" class="sheet hidden">
+  <div class="sheet-content">
+    <p id="deleteMessage" style="margin-bottom: 16px; text-align: center;"></p>
+    <div class="row" style="justify-content: center;">
+      <form id="deleteForm" method="POST">
+        <button type="submit" class="btn-primary">Yes, delete</button>
+      </form>
+      <button id="cancelDelete" class="btn-secondary">Cancel</button>
+    </div>
+  </div>
+</div>
 
-<!-- Populated when there are assignments -->
-<section id="list" class="list"></section>
+<script>
+  const popup = document.getElementById("deletePopup");
+  const msg = document.getElementById("deleteMessage");
+  const form = document.getElementById("deleteForm");
+  const cancel = document.getElementById("cancelDelete");
+
+  function openDeletePopup(id, title) {
+    msg.textContent = `Are you sure you want to delete "${title}"?`;
+    form.action = `/delete/${id}`;
+    popup.classList.remove("hidden");
+  }
+
+  cancel.addEventListener("click", () => {
+    popup.classList.add("hidden");
+  });
+</script>
 {% endblock %}
