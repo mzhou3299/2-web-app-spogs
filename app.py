@@ -4,6 +4,8 @@ from io import StringIO
 from datetime import datetime, date, timedelta
 from dotenv import load_dotenv
 from flask import Flask, render_template, redirect, url_for, request, flash, Response
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 from collections import defaultdict
@@ -19,8 +21,13 @@ from models import (
 
 load_dotenv()
 app = Flask(__name__)
-# Work in Progress: Use secret key for user authentication
 app.secret_key = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
+
+# Initialize Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "login"
+
 client = MongoClient(
     os.getenv("MONGO_URI"),
     username=os.getenv("MONGO_USER"),
@@ -28,6 +35,25 @@ client = MongoClient(
 )
 db = client["homeworkdb"]
 col = db["assignments"]
+users_col = db["users"]
+
+class User(UserMixin):
+    def __init__(self, user_id, username, email):
+        self.id = user_id
+        self.username = username
+        self.email = email
+
+@login_manager.user_loader
+def load_user(user_id):
+    """Load user from database for Flask-Login"""
+    user_doc = users_col.find_one({"_id": ObjectId(user_id)})
+    if user_doc:
+        return User(
+            user_id=str(user_doc["_id"]),
+            username=user_doc["username"],
+            email=user_doc["email"]
+        )
+    return None
 
 def group_by_date(assignments):
     """Group assignments by due date with formatted labels"""
@@ -103,12 +129,14 @@ def calculate_assignment_status(assignment):
     
     return status
 
+
 with app.app_context():
     col.create_index([("due_date", 1)])
     col.create_index([("created_at", -1)])
     col.create_index([("course", 1)])
     col.create_index([("updated_at", -1)])
     col.create_index([("completed", 1), ("updated_at", -1)])
+    col.create_index([("user_id", 1)])
 
 @app.get("/")
 def index():
@@ -131,9 +159,12 @@ def index():
     
     grouped_assignments = group_by_date(assignments)
     
-    return render_template("index.html", grouped_assignments=grouped_assignments, has_assignments=len(assignments) > 0)
+    if current_user.is_authenticated:
+        return render_template("index.html", grouped_assignments=grouped_assignments, has_assignments=len(assignments) > 0)
+    return redirect(url_for("login"))
 
 @app.route("/add", methods=["GET", "POST"])
+@login_required
 def add_assignment():
     """
     Route for GET and POST requests to the add assignment page.
@@ -153,6 +184,7 @@ def add_assignment():
             estimated_time = int(estimated_time_str) if estimated_time_str else None
             
             assignment_data = AssignmentCreate(
+                user_id: current_user.id,
                 title=request.form.get("title", ""),
                 course=request.form.get("course", ""),
                 notes=request.form.get("notes", ""),
@@ -179,6 +211,7 @@ def add_assignment():
     return render_template("add_assignment.html")
 
 @app.post("/toggle/<string:assignment_id>")
+@login_required
 def toggle_assignment(assignment_id):
     """Toggle the completed status of an assignment"""
     try:
@@ -193,12 +226,14 @@ def toggle_assignment(assignment_id):
     new_completed = not bool(doc.get("completed", False))
     col.update_one(
         {"_id": oid},
-        {"$set": {"completed": new_completed, "updated_at": datetime.utcnow()}}
+        {"$set": {"completed": new_completed, "updated_at": datetime.utcnow()}},
+        {"user_id": current_user.id}
     )
     
     return redirect(url_for("index"))
 
 @app.post("/delete/<string:assignment_id>")
+@login_required
 def delete_assignment(assignment_id):
     """Delete an assignment"""
     try:
@@ -206,10 +241,11 @@ def delete_assignment(assignment_id):
     except Exception:
         return "Invalid assignment ID", 400
     
-    col.delete_one({"_id": oid})
+    col.delete_one({"_id": oid, "user_id": current_user.id})
     return redirect(url_for("index"))
 
 @app.route("/edit/<string:assignment_id>", methods=["GET", "POST"])
+@login_required
 def edit_assignment(assignment_id):
     """Edit an existing assignment"""
     try:
@@ -233,6 +269,7 @@ def edit_assignment(assignment_id):
             estimated_time = int(estimated_time_str) if estimated_time_str else None
             
             assignment_data = AssignmentUpdate(
+                user_id=current_user.id,
                 title=request.form.get("title", ""),
                 course=request.form.get("course", ""),
                 notes=request.form.get("notes", ""),
@@ -242,7 +279,7 @@ def edit_assignment(assignment_id):
             )
             
             update_doc = assignment_update_to_dict(assignment_data)
-            col.update_one({"_id": oid}, {"$set": update_doc})
+            col.update_one({"_id": oid, "user_id": current_user.id}, {"$set": update})
             
             flash("Assignment updated successfully!", "success")
             return redirect(url_for("index"))
@@ -262,6 +299,7 @@ def edit_assignment(assignment_id):
     return render_template("edit_assignment.html", assignment=assignment)
 
 @app.route("/search")
+@login_required
 def search():
     """Search and filter assignments"""
     text_query = request.args.get("q", "").strip()
@@ -272,7 +310,7 @@ def search():
     time_max = request.args.get("time_max", "").strip()
     show_completed = request.args.get("show_completed", "").lower() == "true"
     
-    query = {}
+    query = {"user_id": current_user.id}
     
     # Text search on title and notes
     if text_query:
@@ -358,6 +396,7 @@ def search():
     )
 
 @app.route("/export")
+@login_required
 def export_assignments():
     """Export filtered assignments as CSV"""
     text_query = request.args.get("q", "").strip()
@@ -368,7 +407,7 @@ def export_assignments():
     time_max = request.args.get("time_max", "").strip()
     show_completed = request.args.get("show_completed", "").lower() == "true"
     
-    query = {}
+    query = {"user_id": current_user.id}
     
     if text_query:
         query["$or"] = [
@@ -449,6 +488,95 @@ def export_assignments():
         mimetype="text/csv",
         headers={"Content-Disposition": "attachment;filename=assignments.csv"}
     )
+
+# Authentication Routes
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    """Handle user login"""
+    if current_user.is_authenticated:
+        return redirect(url_for("index"))
+    
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+
+        # Find user in database
+        user_doc = users_col.find_one({"username": username})
+
+        if user_doc and check_password_hash(user_doc["password_hash"], password):
+            # Create User object and login with Flask-Login
+            user = User(
+                user_id=str(user_doc["_id"]),
+                username=user_doc["username"],
+                email=user_doc["email"]
+            )
+            login_user(user)
+            flash("Login successful!", "success")
+            return redirect(url_for("index"))
+        else:
+            flash("Invalid username or password", "error")
+
+    return render_template("login.html")
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        username = request.form.get("username")
+        email = request.form.get("email")
+        password = request.form.get("password")
+        confirm_password = request.form.get("confirm_password")
+
+        # Basic validation
+        if not username or not email or not password:
+            flash("All fields are required", "error")
+            return render_template("register.html")
+
+        if password != confirm_password:
+            flash("Passwords do not match", "error")
+            return render_template("register.html")
+
+        # Check if user already exists
+        if users_col.find_one({"username": username}):
+            flash("Username already exists", "error")
+            return render_template("register.html")
+
+        if users_col.find_one({"email": email}):
+            flash("Email already exists", "error")
+            return render_template("register.html")
+
+        # Create new user
+        password_hash = generate_password_hash(password, method='pbkdf2:sha256')
+        user_data = {
+            "username": username,
+            "email": email,
+            "password_hash": password_hash,
+            "created_at": datetime.utcnow(),
+            "is_active": True,
+        }
+
+        users_col.insert_one(user_data)
+        flash("Registration successful! Please login.", "success")
+        return redirect("/login")
+
+    return render_template("register.html")
+
+
+@app.route("/home")
+def home():
+    """Home page - redirect to index if authenticated"""
+    if current_user.is_authenticated:
+        return redirect(url_for("index"))
+    return render_template("home.html")
+
+
+@app.route("/logout")
+@login_required
+def logout():
+    """Handle user logout"""
+    logout_user()
+    flash("Logged out successfully", "success")
+    return redirect(url_for("login"))
 
 
 if __name__ == "__main__":

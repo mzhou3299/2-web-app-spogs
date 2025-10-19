@@ -9,16 +9,18 @@ click = "*"
 flask = "*"
 flask-debugtoolbar = "*"
 flask-pymongo = "*"
+flask-login = "*"
 itsdangerous = "*"
 jinja2 = "*"
 markupsafe = "*"
-python-dotenv = "==0.16.0"
+python-dotenv = "*"
+werkzeug = "*"
 pytest = "*"
 pytest-flask = "*"
 coverage = "*"
 dnspython = "*"
-pymongo = {extras = ["tls", "srv"], version = "==4.10.0"}
 pydantic = "*"
+pymongo = {extras = ["tls", "srv"], version = "*"}
 gunicorn = "*"
 
 [dev-packages]

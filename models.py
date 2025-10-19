@@ -7,7 +7,6 @@ from typing import Optional
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 from bson import ObjectId
 
-
 class AssignmentCreate(BaseModel):
     """Model for creating a new assignment"""
     title: str = Field(..., min_length=1, max_length=200, description="Assignment title")
@@ -36,7 +35,6 @@ class AssignmentCreate(BaseModel):
             return v.strip()
         return v
 
-
 class AssignmentUpdate(BaseModel):
     """Model for updating an existing assignment"""
     title: Optional[str] = Field(None, min_length=1, max_length=200)
@@ -60,6 +58,7 @@ class AssignmentUpdate(BaseModel):
 
 class Assignment(BaseModel):
     """Model representing a complete assignment from the database"""
+    user_id: str = Field(..., description="MongoDB userId")
     id: str = Field(..., description="MongoDB ObjectId as string")
     title: str
     course: Optional[str] = None
@@ -88,6 +87,7 @@ def assignment_to_dict(assignment: AssignmentCreate) -> dict:
     due_datetime = datetime.combine(assignment.due_date, datetime.min.time())
     
     return {
+        "user_id": assignment.user_id,
         "title": assignment.title,
         "course": assignment.course or "",
         "notes": assignment.notes or "",
