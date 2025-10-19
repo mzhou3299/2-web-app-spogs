@@ -9,6 +9,7 @@ from bson import ObjectId
 
 class AssignmentCreate(BaseModel):
     """Model for creating a new assignment"""
+    user_id: str = Field(..., description="User ID who owns this assignment")
     title: str = Field(..., min_length=1, max_length=200, description="Assignment title")
     course: Optional[str] = Field(None, max_length=120, description="Course name")
     notes: Optional[str] = Field(None, description="Additional notes")
@@ -37,6 +38,7 @@ class AssignmentCreate(BaseModel):
 
 class AssignmentUpdate(BaseModel):
     """Model for updating an existing assignment"""
+    user_id: str = Field(..., description="User ID who owns this assignment")
     title: Optional[str] = Field(None, min_length=1, max_length=200)
     course: Optional[str] = Field(None, max_length=120)
     notes: Optional[str] = Field(None)
@@ -58,7 +60,7 @@ class AssignmentUpdate(BaseModel):
 
 class Assignment(BaseModel):
     """Model representing a complete assignment from the database"""
-    user_id: str = Field(..., description="MongoDB userId")
+    user_id: str = Field(..., description="User ID who owns this assignment")
     id: str = Field(..., description="MongoDB ObjectId as string")
     title: str
     course: Optional[str] = None
@@ -145,6 +147,7 @@ def serialize_assignment(doc: dict) -> dict:
     """
     return {
         "id": str(doc["_id"]),
+        "user_id": doc.get("user_id", ""),
         "title": doc.get("title", ""),
         "course": doc.get("course", ""),
         "notes": doc.get("notes", ""),

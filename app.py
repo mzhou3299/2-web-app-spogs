@@ -140,26 +140,28 @@ with app.app_context():
 
 @app.get("/")
 def index():
-    twenty_four_hours_ago = datetime.utcnow() - timedelta(hours=24)
-    
-    # Exclude assignments which were marked "complete" more than 24 hours ago
-    query = {
-        "$or": [
-            {"completed": {"$ne": True}},
-            {"completed": True, "updated_at": {"$gte": twenty_four_hours_ago}}
-        ]
-    }
-    
-    cursor = col.find(query).sort([("due_date", 1), ("created_at", -1)])
-    assignments = [serialize_assignment(doc) for doc in cursor]
-    
-    for assignment in assignments:
-        status = calculate_assignment_status(assignment)
-        assignment.update(status)
-    
-    grouped_assignments = group_by_date(assignments)
-    
     if current_user.is_authenticated:
+        twenty_four_hours_ago = datetime.utcnow() - timedelta(hours=24)
+        
+        # Exclude assignments which were marked "complete" more than 24 hours ago
+        # Only show assignments for the current user
+        query = {
+            "user_id": current_user.id,
+            "$or": [
+                {"completed": {"$ne": True}},
+                {"completed": True, "updated_at": {"$gte": twenty_four_hours_ago}}
+            ]
+        }
+        
+        cursor = col.find(query).sort([("due_date", 1), ("created_at", -1)])
+        assignments = [serialize_assignment(doc) for doc in cursor]
+        
+        for assignment in assignments:
+            status = calculate_assignment_status(assignment)
+            assignment.update(status)
+        
+        grouped_assignments = group_by_date(assignments)
+        
         return render_template("index.html", grouped_assignments=grouped_assignments, has_assignments=len(assignments) > 0)
     return redirect(url_for("login"))
 
@@ -184,7 +186,7 @@ def add_assignment():
             estimated_time = int(estimated_time_str) if estimated_time_str else None
             
             assignment_data = AssignmentCreate(
-                user_id: current_user.id,
+                user_id=current_user.id,
                 title=request.form.get("title", ""),
                 course=request.form.get("course", ""),
                 notes=request.form.get("notes", ""),
@@ -219,15 +221,14 @@ def toggle_assignment(assignment_id):
     except Exception:
         return "Invalid assignment ID", 400
     
-    doc = col.find_one({"_id": oid})
+    doc = col.find_one({"_id": oid, "user_id": current_user.id})
     if not doc:
         return "Assignment not found", 404
     
     new_completed = not bool(doc.get("completed", False))
     col.update_one(
-        {"_id": oid},
-        {"$set": {"completed": new_completed, "updated_at": datetime.utcnow()}},
-        {"user_id": current_user.id}
+        {"_id": oid, "user_id": current_user.id},
+        {"$set": {"completed": new_completed, "updated_at": datetime.utcnow()}}
     )
     
     return redirect(url_for("index"))
@@ -254,7 +255,7 @@ def edit_assignment(assignment_id):
         flash("Invalid assignment ID", "error")
         return redirect(url_for("index"))
     
-    doc = col.find_one({"_id": oid})
+    doc = col.find_one({"_id": oid, "user_id": current_user.id})
     if not doc:
         flash("Assignment not found", "error")
         return redirect(url_for("index"))
@@ -279,7 +280,7 @@ def edit_assignment(assignment_id):
             )
             
             update_doc = assignment_update_to_dict(assignment_data)
-            col.update_one({"_id": oid, "user_id": current_user.id}, {"$set": update})
+            col.update_one({"_id": oid, "user_id": current_user.id}, {"$set": update_doc})
             
             flash("Assignment updated successfully!", "success")
             return redirect(url_for("index"))
@@ -375,7 +376,7 @@ def search():
         status = calculate_assignment_status(assignment)
         assignment.update(status)
     
-    all_courses = col.distinct("course", {"course": {"$ne": ""}})
+    all_courses = col.distinct("course", {"user_id": current_user.id, "course": {"$ne": ""}})
     
     filters = {
         "q": text_query,
