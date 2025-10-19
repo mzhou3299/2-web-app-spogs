@@ -293,11 +293,32 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     border-radius: 8px;
     margin-bottom: 8px;
     font-weight: 500;
+    animation: slideInAndFadeOut 4s ease-in-out forwards;
 }
 
 .flash-message.error {
     background: var(--danger);
     color: white;
+}
+
+@keyframes slideInAndFadeOut {
+    0% {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    10% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    85% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-10px);
+        visibility: hidden;
+    }
 }
 
 .welcome-container {
