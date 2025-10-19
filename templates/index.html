@@ -3,14 +3,52 @@
 <header class="topbar">
   <h1>Homework</h1>
   <div class="row">
-    <button id="addBtn" class="btn-primary">Add</button>
-    <a href="/logout" class="btn-secondary">Logout</a>
+    <a href="{{ url_for('search') }}" class="btn-icon-search" title="Search">🔍</a>
+    <a href="{{ url_for('add_assignment') }}" class="btn-primary">Add</a>
+    <a href="{{ url_for('logout') }}" class="btn-secondary">Logout</a>
   </div>
 </header>
 
-<!-- Full-height empty state under the header -->
-<section id="emptyState" class="empty empty-full hidden">No Current Assignments</section>
-
-<!-- Populated when there are assignments -->
-<section id="list" class="list"></section>
+{% if not has_assignments %}
+  <!-- Full-height empty state under the header -->
+  <section class="empty empty-full">No Current Assignments</section>
+{% else %}
+  <!-- Populated when there are assignments -->
+  <section class="list">
+    {% for date_label, assignments in grouped_assignments.items() %}
+      <div class="meta">{{ date_label }}</div>
+      {% for assignment in assignments %}
+        <div class="card {% if assignment.is_overdue %}assignment-overdue{% elif assignment.is_due_soon %}assignment-due-soon{% endif %}">
+          <div class="card-head">
+            <div class="row">
+              <form method="POST" action="{{ url_for('toggle_assignment', assignment_id=assignment.id) }}" style="margin: 0;">
+                <input type="checkbox" {% if assignment.completed %}checked{% endif %} onchange="this.form.submit()">
+              </form>
+              <div class="title {% if assignment.completed %}completed{% endif %}">{{ assignment.title }}</div>
+            </div>
+            <div class="actions">
+              <a href="{{ url_for('edit_assignment', assignment_id=assignment.id) }}" class="btn-icon">Edit</a>
+              <form method="POST" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" style="display: inline; margin: 0;" onsubmit="return confirm('Delete this assignment?')">
+                <button type="submit" class="btn-icon">Del</button>
+              </form>
+            </div>
+          </div>
+          <div class="meta">
+            {% if assignment.course %}
+              <span class="badge">{{ assignment.course }}</span>
+            {% endif %}
+            <span>{{ assignment.due_date }}</span>
+            <span class="badge">P{{ assignment.priority }}</span>
+            {% if assignment.estimated_time %}
+              <span class="badge">{{ assignment.estimated_time }}m</span>
+            {% endif %}
+          </div>
+          {% if assignment.notes %}
+            <div style="font-size: 13px; opacity: 0.9;">{{ assignment.notes }}</div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    {% endfor %}
+  </section>
+{% endif %}
 {% endblock %}

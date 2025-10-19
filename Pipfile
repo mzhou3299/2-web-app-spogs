@@ -19,6 +19,7 @@ pytest = "*"
 pytest-flask = "*"
 coverage = "*"
 dnspython = "*"
+pydantic = "*"
 pymongo = {extras = ["tls", "srv"], version = "*"}
 gunicorn = "*"
 

@@ -57,10 +57,50 @@ body {
     font-weight: 600; 
     padding: 10px 14px; 
     border-radius: 12px; 
+    cursor: pointer;
 }
 
 .btn-primary:active { 
     background: var(--accent-press); 
+}
+
+.btn-export {
+    border: 0;
+    background: #3b82f6;
+    color: #fff;
+    font-weight: 600;
+    padding: 10px 14px;
+    border-radius: 12px;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.btn-export:active {
+    background: #2563eb;
+}
+
+.btn-icon-search {
+    background: transparent;
+    border: 0;
+    font-size: 20px;
+    padding: 8px;
+    text-decoration: none;
+}
+
+.btn-clear {
+    border: 1px solid #27272a;
+    background: transparent;
+    color: var(--muted);
+    padding: 10px 14px;
+    border-radius: 12px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.btn-clear:active {
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .icon { 
@@ -110,6 +150,21 @@ body {
 .title { 
     font-size: 16px; 
     font-weight: 600; 
+}
+
+.title.completed {
+    text-decoration: line-through;
+    opacity: 0.5;
+}
+
+.assignment-due-soon {
+    background: rgba(234, 179, 8, 0.25) !important;
+    border: 1px solid rgba(234, 179, 8, 0.4);
+}
+
+.assignment-overdue {
+    background: rgba(220, 38, 38, 0.25) !important;
+    border: 1px solid rgba(220, 38, 38, 0.4);
 }
 
 .meta { 
@@ -265,6 +320,62 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     background: rgba(255, 255, 255, 0.05);
 }
 
+.flash-messages {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 400px;
+}
+
+.flash {
+    padding: 14px 18px;
+    border-radius: 12px;
+    font-size: 14px;
+    animation: flashLifecycle 4.3s ease-out forwards;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.flash-success {
+    background: #065f46;
+    color: #d1fae5;
+    border: 1px solid #10b981;
+}
+
+.flash-error {
+    background: #7f1d1d;
+    color: #fecaca;
+    border: 1px solid var(--danger);
+}
+
+.flash-info {
+    background: #1e3a8a;
+    color: #bfdbfe;
+    border: 1px solid #3b82f6;
+}
+
+@keyframes flashLifecycle {
+    0% {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    7% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    93% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
 @keyframes rise { 
     from { 
         transform: translateY(24px); 
@@ -274,51 +385,87 @@ input[type="date"]::-webkit-calendar-picker-indicator {
         opacity: 1; 
     } 
 }
+
+/* Search Filter Styles */
+.search-filters {
+    background: var(--card);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.search-filters form {
+    display: grid;
+    gap: 12px;
+}
+
+.filter-group {
+    display: grid;
+    gap: 6px;
+}
+
+.filter-group label {
+    font-size: 12px;
+    color: var(--muted);
+    margin: 0;
+}
+
+.filter-group input,
+.filter-group select {
+    width: 100%;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid #27272a;
+    background: #0f1115;
+    color: var(--text);
+    font-size: 14px;
+}
+
+.filter-group select {
+    cursor: pointer;
+}
+
+.filter-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.filter-toggle-group {
+    padding: 4px 0;
+}
+
+.filter-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    margin: 0;
+}
+
+.filter-toggle input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+    cursor: pointer;
+}
+
+.filter-toggle span {
+    font-size: 14px;
+    color: var(--text);
+}
+
+.filter-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 4px;
+}
+
 /* Authentication Styles */
 .user-info {
     color: var(--muted);
     font-size: 14px;
     margin-right: 8px;
-}
-
-.flash-messages {
-    padding: 12px;
-    margin-bottom: 16px;
-}
-
-.flash-message {
-    background: var(--accent);
-    color: #042;
-    padding: 12px;
-    border-radius: 8px;
-    margin-bottom: 8px;
-    font-weight: 500;
-    animation: slideInAndFadeOut 4s ease-in-out forwards;
-}
-
-.flash-message.error {
-    background: var(--danger);
-    color: white;
-}
-
-@keyframes slideInAndFadeOut {
-    0% {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-    10% {
-        opacity: 1;
-        transform: translateY(0);
-    }
-    85% {
-        opacity: 1;
-        transform: translateY(0);
-    }
-    100% {
-        opacity: 0;
-        transform: translateY(-10px);
-        visibility: hidden;
-    }
 }
 
 .welcome-container {

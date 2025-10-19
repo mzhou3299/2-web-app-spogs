@@ -11,14 +11,16 @@
   </head>
   <body>
     <main id="app">
-      {% with messages = get_flashed_messages() %} {% if messages %}
-      <div class="flash-messages">
-        {% for message in messages %}
-        <div class="flash-message">{{ message }}</div>
-        {% endfor %}
-      </div>
-      {% endif %} {% endwith %} {% block content %}{% endblock %}
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-messages">
+            {% for category, message in messages %}
+              <div class="flash flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+      {% block content %}{% endblock %}
     </main>
-    <script defer src="{{ url_for('static', filename='js/app.js') }}"></script>
   </body>
 </html>
