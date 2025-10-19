@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="topbar">
+  <div class="row">
+    <a href="{{ url_for('index') }}" class="btn-icon" style="padding: 8px 12px;">← Back</a>
+    <h1 style="margin: 0;">Search</h1>
+  </div>
+  <a href="{{ url_for('export_assignments', **filters) }}" class="btn-export">Export</a>
+</header>
+
+<!-- Filter Section -->
+<section class="search-filters">
+  <form method="GET" action="{{ url_for('search') }}" id="search-form">
+    <div class="filter-group">
+      <input type="text" id="q" name="q" placeholder="Search title or notes..." value="{{ filters.q }}"/>
+    </div>
+    
+    <div class="filter-group">
+      <select id="course" name="course">
+        <option value="">All Courses</option>
+        {% for course in all_courses %}
+          <option value="{{ course }}" {% if filters.course == course %}selected{% endif %}>{{ course }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    
+    <div class="filter-row">
+      <div class="filter-group">
+        <label>Due Start</label>
+        <input type="date" id="due_start" name="due_start" value="{{ filters.due_start }}"/>
+      </div>
+      <div class="filter-group">
+        <label>Due End</label>
+        <input type="date" id="due_end" name="due_end" value="{{ filters.due_end }}"/>
+      </div>
+    </div>
+    
+    <div class="filter-row">
+      <div class="filter-group">
+        <label>Min Time (min)</label>
+        <input type="number" id="time_min" name="time_min" min="1" placeholder="Min" value="{{ filters.time_min }}"/>
+      </div>
+      <div class="filter-group">
+        <label>Max Time (min)</label>
+        <input type="number" id="time_max" name="time_max" min="1" placeholder="Max" value="{{ filters.time_max }}"/>
+      </div>
+    </div>
+    
+    <div class="filter-group filter-toggle-group">
+      <label class="filter-toggle">
+        <input type="checkbox" id="show_completed" name="show_completed" value="true" {% if filters.show_completed %}checked{% endif %} onchange="this.form.submit()"/>
+        <span>Show completed assignments</span>
+      </label>
+    </div>
+    
+    <div class="filter-actions">
+      <button type="submit" class="btn-primary">Apply Filters</button>
+      <a href="{{ url_for('search') }}" class="btn-clear">Clear</a>
+    </div>
+  </form>
+</section>
+
+<!-- Results Section -->
+{% if not has_results %}
+  <section class="empty" style="padding: 48px 0;">No assignments found</section>
+{% else %}
+  <section class="list">
+    {% for assignment in assignments %}
+      <div class="card {% if assignment.is_overdue %}assignment-overdue{% elif assignment.is_due_soon %}assignment-due-soon{% endif %}">
+        <div class="card-head">
+          <div class="row">
+            <form method="POST" action="{{ url_for('toggle_assignment', assignment_id=assignment.id) }}" style="margin: 0;">
+              <input type="checkbox" {% if assignment.completed %}checked{% endif %} onchange="this.form.submit()">
+            </form>
+            <div class="title {% if assignment.completed %}completed{% endif %}">
+              {{ assignment.title }}
+            </div>
+          </div>
+          <div class="actions">
+            <a href="{{ url_for('edit_assignment', assignment_id=assignment.id) }}" class="btn-icon">Edit</a>
+            <form method="POST" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" style="display: inline; margin: 0;" onsubmit="return confirm('Delete this assignment?')">
+              <button type="submit" class="btn-icon">Del</button>
+            </form>
+          </div>
+        </div>
+        <div class="meta">
+          {% if assignment.course %}
+            <span class="badge">{{ assignment.course }}</span>
+          {% endif %}
+          <span>{{ assignment.due_date }}</span>
+          <span class="badge">P{{ assignment.priority }}</span>
+          {% if assignment.estimated_time %}
+            <span class="badge">{{ assignment.estimated_time }}m</span>
+          {% endif %}
+        </div>
+        {% if assignment.notes %}
+          <div style="font-size: 13px; opacity: 0.9;">{{ assignment.notes }}</div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </section>
+{% endif %}
+{% endblock %}

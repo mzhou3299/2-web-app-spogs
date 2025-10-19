@@ -15,6 +15,7 @@ class AssignmentCreate(BaseModel):
     notes: Optional[str] = Field(None, description="Additional notes")
     due_date: date = Field(..., description="Assignment due date")
     priority: int = Field(default=2, ge=1, le=3, description="Priority level (1-3)")
+    estimated_time: Optional[int] = Field(None, ge=1, description="Estimated completion time in minutes")
     completed: bool = Field(default=False, description="Completion status")
     
     model_config = ConfigDict(str_strip_whitespace=True)
@@ -43,6 +44,7 @@ class AssignmentUpdate(BaseModel):
     notes: Optional[str] = Field(None)
     due_date: Optional[date] = None
     priority: Optional[int] = Field(None, ge=1, le=3)
+    estimated_time: Optional[int] = Field(None, ge=1)
     completed: Optional[bool] = None
     
     model_config = ConfigDict(str_strip_whitespace=True)
@@ -64,6 +66,7 @@ class Assignment(BaseModel):
     notes: Optional[str] = None
     due_date: str = Field(..., description="Due date in YYYY-MM-DD format")
     priority: int = Field(default=2, ge=1, le=3)
+    estimated_time: Optional[int] = None
     completed: bool = Field(default=False)
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
@@ -90,6 +93,7 @@ def assignment_to_dict(assignment: AssignmentCreate) -> dict:
         "notes": assignment.notes or "",
         "due_date": due_datetime,
         "priority": assignment.priority,
+        "estimated_time": assignment.estimated_time,
         "completed": assignment.completed,
         "created_at": now,
         "updated_at": now
@@ -119,6 +123,8 @@ def assignment_update_to_dict(assignment: AssignmentUpdate) -> dict:
         update_dict["due_date"] = datetime.combine(assignment.due_date, datetime.min.time())
     if assignment.priority is not None:
         update_dict["priority"] = assignment.priority
+    if assignment.estimated_time is not None:
+        update_dict["estimated_time"] = assignment.estimated_time
     if assignment.completed is not None:
         update_dict["completed"] = assignment.completed
     
@@ -148,6 +154,7 @@ def serialize_assignment(doc: dict) -> dict:
             else doc.get("due_date", "")
         ),
         "priority": doc.get("priority", 2),
+        "estimated_time": doc.get("estimated_time"),
         "completed": bool(doc.get("completed", False)),
         "created_at": (
             doc.get("created_at").isoformat() 

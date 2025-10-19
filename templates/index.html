@@ -3,6 +3,7 @@
 <header class="topbar">
   <h1>Homework</h1>
   <div class="row">
+    <a href="{{ url_for('search') }}" class="btn-icon-search" title="Search">🔍</a>
     <a href="{{ url_for('add_assignment') }}" class="btn-primary">Add</a>
   </div>
 </header>
@@ -16,7 +17,7 @@
     {% for date_label, assignments in grouped_assignments.items() %}
       <div class="meta">{{ date_label }}</div>
       {% for assignment in assignments %}
-        <div class="card">
+        <div class="card {% if assignment.is_overdue %}assignment-overdue{% elif assignment.is_due_soon %}assignment-due-soon{% endif %}">
           <div class="card-head">
             <div class="row">
               <form method="POST" action="{{ url_for('toggle_assignment', assignment_id=assignment.id) }}" style="margin: 0;">
@@ -37,6 +38,9 @@
             {% endif %}
             <span>{{ assignment.due_date }}</span>
             <span class="badge">P{{ assignment.priority }}</span>
+            {% if assignment.estimated_time %}
+              <span class="badge">{{ assignment.estimated_time }}m</span>
+            {% endif %}
           </div>
           {% if assignment.notes %}
             <div style="font-size: 13px; opacity: 0.9;">{{ assignment.notes }}</div>
