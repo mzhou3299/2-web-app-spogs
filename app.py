@@ -2,12 +2,20 @@ import os
 from datetime import datetime, date
 from dotenv import load_dotenv
 from flask import Flask, render_template, redirect, url_for, request, jsonify, flash
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 from werkzeug.security import generate_password_hash, check_password_hash
 
 load_dotenv()
 app = Flask(__name__)
+app.secret_key = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
+
+# Initialize Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "login"
+
 client = MongoClient(
     os.getenv("MONGO_URI"),
     username=os.getenv("MONGO_USER"),
@@ -15,7 +23,26 @@ client = MongoClient(
 )
 db = client["homeworkdb"]
 col = db["assignments"]
-users_col = db["users"]  # New collection for users
+users_col = db["users"]
+
+class User(UserMixin):
+    def __init__(self, user_id, username, email):
+        self.id = user_id
+        self.username = username
+        self.email = email
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    """Load user from database for Flask-Login"""
+    user_doc = users_col.find_one({"_id": ObjectId(user_id)})
+    if user_doc:
+        return User(
+            user_id=str(user_doc["_id"]),
+            username=user_doc["username"],
+            email=user_doc["email"]
+        )
+    return None
 
 
 def serialize(doc):
@@ -47,20 +74,27 @@ def serialize(doc):
 with app.app_context():
     col.create_index([("due_date", 1)])
     col.create_index([("created_at", -1)])
+    col.create_index([("user_id", 1)])
 
 
 @app.get("/")
 def index():
-    return render_template("index.html")
+    """Redirect to login if not authenticated, otherwise show assignments"""
+    if current_user.is_authenticated:
+        return render_template("index.html")
+    return redirect(url_for("login"))
 
 
 @app.get("/api/assignments")
+@login_required
 def list_assignments():
-    cur = col.find({}).sort([("due_date", 1), ("created_at", -1)])
+    """Get assignments for the current logged-in user only"""
+    cur = col.find({"user_id": current_user.id}).sort([("due_date", 1), ("created_at", -1)])
     return jsonify([serialize(d) for d in cur])
 
 
 @app.route("/add", methods=["GET", "POST"])
+@login_required
 def add_assignment():
     """
     Route for GET and POST requests to the add assignment page.
@@ -92,6 +126,7 @@ def add_assignment():
 
         now = datetime.utcnow()
         doc = {
+            "user_id": current_user.id,
             "title": title,
             "course": course,
             "notes": notes,
@@ -138,11 +173,19 @@ def create_assignment():
 
 
 @app.patch("/api/assignments/<string:assignment_id>")
+@login_required
 def update_assignment(assignment_id):
+    """Update an assignment (only if it belongs to current user)"""
     try:
         oid = ObjectId(assignment_id)
     except Exception:
         return jsonify({"error": "invalid id"}), 400
+    
+    # Verify ownership
+    doc = col.find_one({"_id": oid, "user_id": current_user.id})
+    if not doc:
+        return jsonify({"error": "not found"}), 404
+    
     p = request.get_json(force=True)
     update = {}
     if "title" in p:
@@ -159,37 +202,50 @@ def update_assignment(assignment_id):
         except ValueError:
             return jsonify({"error": "invalid due_date"}), 400
     update["updated_at"] = datetime.utcnow()
-    col.update_one({"_id": oid}, {"$set": update})
+    col.update_one({"_id": oid, "user_id": current_user.id}, {"$set": update})
     doc = col.find_one({"_id": oid})
-    if not doc:
-        return jsonify({"error": "not found"}), 404
     return jsonify(serialize(doc))
 
 
 @app.delete("/api/assignments/<string:assignment_id>")
+@login_required
 def delete_assignment(assignment_id):
+    """Delete an assignment (only if it belongs to current user)"""
     try:
         oid = ObjectId(assignment_id)
     except Exception:
         return jsonify({"error": "invalid id"}), 400
-    col.delete_one({"_id": oid})
+    
+    result = col.delete_one({"_id": oid, "user_id": current_user.id})
+    if result.deleted_count == 0:
+        return jsonify({"error": "not found"}), 404
     return ("", 204)
 
 
 # Authentication Routes
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    """Handle user login"""
+    if current_user.is_authenticated:
+        return redirect(url_for("index"))
+    
     if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
 
         # Find user in database
-        user = users_col.find_one({"username": username})
+        user_doc = users_col.find_one({"username": username})
 
-        if user and check_password_hash(user["password_hash"], password):
-            # Login successful - for now just redirect to home
+        if user_doc and check_password_hash(user_doc["password_hash"], password):
+            # Create User object and login with Flask-Login
+            user = User(
+                user_id=str(user_doc["_id"]),
+                username=user_doc["username"],
+                email=user_doc["email"]
+            )
+            login_user(user)
             flash("Login successful!", "success")
-            return redirect("/home")
+            return redirect(url_for("index"))
         else:
             flash("Invalid username or password", "error")
 
@@ -223,7 +279,7 @@ def register():
             return render_template("register.html")
 
         # Create new user
-        password_hash = generate_password_hash(password)
+        password_hash = generate_password_hash(password, method='pbkdf2:sha256')
         user_data = {
             "username": username,
             "email": email,
@@ -241,14 +297,19 @@ def register():
 
 @app.route("/home")
 def home():
+    """Home page - redirect to index if authenticated"""
+    if current_user.is_authenticated:
+        return redirect(url_for("index"))
     return render_template("home.html")
 
 
 @app.route("/logout")
+@login_required
 def logout():
-    # For now just redirect to home
+    """Handle user logout"""
+    logout_user()
     flash("Logged out successfully", "success")
-    return redirect("/home")
+    return redirect(url_for("login"))
 
 
 if __name__ == "__main__":
