@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Homework Tracker</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/styles.css') }}"
+    />
+  </head>
+  <body>
+    <main id="app">
+      <!-- Navigation -->
+      <header class="topbar">
+        <h1>Homework</h1>
+        <div class="row">
+          <a href="/login" class="btn-primary">Login</a>
+          <a href="/register" class="btn-secondary">Register</a>
+        </div>
+      </header>
+
+      <!-- Welcome Message -->
+      <div class="welcome-container">
+        <h2>Welcome to Homework Tracker</h2>
+        <p>
+          Please <a href="/login">login</a> or
+          <a href="/register">register</a> to manage your assignments.
+        </p>
+      </div>
+    </main>
+  </body>
+</html>
