@@ -584,6 +584,21 @@ def help_page():
     """Static help/info page"""
     return render_template("help.html")
 
+@app.route("/confirm_delete/<assignment_id>", methods=["GET", "POST"])
+@login_required
+def confirm_delete(assignment_id):
+    assignment = col.find_one({"_id": ObjectId(assignment_id)})
+
+    if not assignment:
+        flash("Assignment not found.", "error")
+        return redirect(url_for("index"))
+
+    if request.method == "POST":
+        col.delete_one({"_id": ObjectId(assignment_id)})
+        flash(f'"{assignment["title"]}" deleted successfully.', "success")
+        return redirect(url_for("index"))
+
+    return render_template("confirm_delete.html", assignment=assignment)
 
 if __name__ == "__main__":
     app.run(debug=True, port=int(os.getenv("PORT", 10000)))

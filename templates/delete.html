@@ -32,8 +32,10 @@
                 <button type="submit" class="btn-icon" title="Toggle Completion">✔️</button>
               </form>
 
-              <!-- Delete button -->
-              <button class="btn-icon" title="Delete" onclick="openDeletePopup('{{ a.id }}', '{{ a.title|escape }}')">🗑️</button>
+              <!-- Delete confirmation via server route -->
+              <form method="GET" action="{{ url_for('confirm_delete', assignment_id=a.id) }}">
+                <button type="submit" class="btn-icon" title="Delete">🗑️</button>
+              </form>
             </div>
           </div>
 
@@ -49,35 +51,5 @@
     <p>No assignments yet. Add one to get started!</p>
   </div>
 {% endif %}
-
-<!-- Delete confirmation popup -->
-<div id="deletePopup" class="sheet hidden">
-  <div class="sheet-content">
-    <p id="deleteMessage" style="margin-bottom: 16px; text-align: center;"></p>
-    <div class="row" style="justify-content: center;">
-      <form id="deleteForm" method="POST">
-        <button type="submit" class="btn-primary">Yes, delete</button>
-      </form>
-      <button id="cancelDelete" class="btn-secondary">Cancel</button>
-    </div>
-  </div>
-</div>
-
-<script>
-  const popup = document.getElementById("deletePopup");
-  const msg = document.getElementById("deleteMessage");
-  const form = document.getElementById("deleteForm");
-  const cancel = document.getElementById("cancelDelete");
-
-  function openDeletePopup(id, title) {
-    msg.textContent = `Are you sure you want to delete "${title}"?`;
-    form.action = `/delete/${id}`;
-    popup.classList.remove("hidden");
-  }
-
-  cancel.addEventListener("click", () => {
-    popup.classList.add("hidden");
-  });
-</script>
 
 {% endblock %}

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="sheet">
+  <div class="sheet-content" style="text-align:center;">
+    <p>Are you sure you want to delete "{{ assignment.title }}"?</p>
+    <form method="POST">
+      <button type="submit" class="btn-primary">Yes, delete</button>
+      <a href="{{ url_for('home') }}" class="btn-secondary">Cancel</a>
+    </form>
+  </div>
+</div>
+{% endblock %}
