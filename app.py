@@ -579,6 +579,11 @@ def logout():
     flash("Logged out successfully", "success")
     return redirect(url_for("login"))
 
+@app.route("/help", methods=["GET"])
+def help_page():
+    """Static help/info page"""
+    return render_template("help.html")
+
 
 if __name__ == "__main__":
     app.run(debug=True, port=int(os.getenv("PORT", 10000)))

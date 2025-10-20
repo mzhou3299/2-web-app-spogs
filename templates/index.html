@@ -3,6 +3,9 @@
 <header class="topbar">
   <h1>Homework</h1>
   <div class="row">
+    <a href="{{ url_for('help_page') }}" class="btn-secondary" style="margin-left: 4px;">Help</a>
+    <!-- placeholder; appears only after Add is clicked -->
+    <button id="newAssignmentBtn" class="btn-secondary hidden" aria-hidden="true">New Assignment</button>
     <a href="{{ url_for('search') }}" class="btn-icon-search" title="Search">🔍</a>
     <a href="{{ url_for('add_assignment') }}" class="btn-primary">Add</a>
     <a href="{{ url_for('logout') }}" class="btn-secondary">Logout</a>
@@ -28,9 +31,7 @@
             </div>
             <div class="actions">
               <a href="{{ url_for('edit_assignment', assignment_id=assignment.id) }}" class="btn-icon">Edit</a>
-              <form method="POST" action="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" style="display: inline; margin: 0;" onsubmit="return confirm('Delete this assignment?')">
-                <button type="submit" class="btn-icon">Del</button>
-              </form>
+              <button class="btn-icon" title="Delete" onclick="openDeletePopup('{{ assignment.id }}', '{{ assignment.title|escape }}')">🗑️</button>
             </div>
           </div>
           <div class="meta">
@@ -51,4 +52,33 @@
     {% endfor %}
   </section>
 {% endif %}
+<!-- Delete confirmation popup -->
+<div id="deletePopup" class="sheet hidden">
+  <div class="sheet-content">
+    <p id="deleteMessage" style="margin-bottom: 16px; text-align: center;"></p>
+    <div class="row" style="justify-content: center;">
+      <form id="deleteForm" method="POST">
+        <button type="submit" class="btn-primary">Yes, delete</button>
+      </form>
+      <button id="cancelDelete" class="btn-secondary">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const popup = document.getElementById("deletePopup");
+  const msg = document.getElementById("deleteMessage");
+  const form = document.getElementById("deleteForm");
+  const cancel = document.getElementById("cancelDelete");
+
+  function openDeletePopup(id, title) {
+    msg.textContent = `Are you sure you want to delete "${title}"?`;
+    form.action = `/delete/${id}`;
+    popup.classList.remove("hidden");
+  }
+
+  cancel.addEventListener("click", () => {
+    popup.classList.add("hidden");
+  });
+</script>
 {% endblock %}

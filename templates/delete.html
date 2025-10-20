@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block content %}
+
+<header class="topbar">
+  <h1>Homework</h1>
+  <div class="row">
+    <a href="{{ url_for('search') }}" class="btn-icon-search" title="Search">🔍</a>
+    <a href="{{ url_for('add_assignment') }}" class="btn-primary">Add</a>
+    <a href="{{ url_for('logout') }}" class="btn-secondary">Logout</a>
+  </div>
+</header>
+
+{% if has_assignments %}
+  <div class="list">
+    {% for date_label, items in grouped_assignments.items() %}
+      <h3 style="margin: 8px 0;">{{ date_label }}</h3>
+      {% for a in items %}
+        <div class="card {% if a.is_overdue %}assignment-overdue{% elif a.is_due_soon %}assignment-due-soon{% endif %}">
+          <div class="card-head">
+            <div>
+              <div class="title {% if a.completed %}completed{% endif %}">{{ a.title }}</div>
+              <div class="meta">
+                <span>{{ a.course }}</span>
+                {% if a.due_date %}<span>Due: {{ a.due_date }}</span>{% endif %}
+              </div>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="actions">
+              <!-- Toggle completion -->
+              <form method="POST" action="{{ url_for('toggle_assignment', assignment_id=a.id) }}">
+                <button type="submit" class="btn-icon" title="Toggle Completion">✔️</button>
+              </form>
+
+              <!-- Delete button -->
+              <button class="btn-icon" title="Delete" onclick="openDeletePopup('{{ a.id }}', '{{ a.title|escape }}')">🗑️</button>
+            </div>
+          </div>
+
+          {% if a.notes %}
+            <p>{{ a.notes }}</p>
+          {% endif %}
+        </div>
+      {% endfor %}
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty-full">
+    <p>No assignments yet. Add one to get started!</p>
+  </div>
+{% endif %}
+
+<!-- Delete confirmation popup -->
+<div id="deletePopup" class="sheet hidden">
+  <div class="sheet-content">
+    <p id="deleteMessage" style="margin-bottom: 16px; text-align: center;"></p>
+    <div class="row" style="justify-content: center;">
+      <form id="deleteForm" method="POST">
+        <button type="submit" class="btn-primary">Yes, delete</button>
+      </form>
+      <button id="cancelDelete" class="btn-secondary">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const popup = document.getElementById("deletePopup");
+  const msg = document.getElementById("deleteMessage");
+  const form = document.getElementById("deleteForm");
+  const cancel = document.getElementById("cancelDelete");
+
+  function openDeletePopup(id, title) {
+    msg.textContent = `Are you sure you want to delete "${title}"?`;
+    form.action = `/delete/${id}`;
+    popup.classList.remove("hidden");
+  }
+
+  cancel.addEventListener("click", () => {
+    popup.classList.add("hidden");
+  });
+</script>
+
+{% endblock %}
